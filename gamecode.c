@@ -9,6 +9,7 @@ typedef struct Player //Estrutura com parâmetros do player e alguns parâmetros
     Color cor_nave;
     Color cor_bala;
     float raio;
+    int cor;
     int tipo_tiro;
 }Player;
 
@@ -18,6 +19,13 @@ typedef struct Bala //Estrutura com parâmetros para movimentação dos tiros
     bool ativa;
     int tipo_tiro;
 }Bala;
+
+typedef struct Barreira
+{
+    Rectangle retan;
+    Color cor_retan;
+    int cor;
+}Barreira;
 
 /*typedef struct Inimigu//estrutura para fazer os inimigos e futuramente suas balas
 {
@@ -29,6 +37,7 @@ typedef struct Bala //Estrutura com parâmetros para movimentação dos tiros
 
 
 static Player jogador = {0};
+static Barreira barreira = {0};
 static Bala bala[50] = {0}; //O vetor bala é necessário pois cada elemento dele é uma bala na tela
 static Bala bala2[50] = {0};
 static Bala bala3[50] = {0};
@@ -42,6 +51,56 @@ void volume(float* vol){
         *vol-=0.1f;
     }
     SetMasterVolume(*vol);
+}
+
+void barreira_de_cor(int* death)
+{
+    
+    if(barreira.retan.y<876)
+    {
+        if(barreira.cor == 1)
+        {
+            barreira.cor_retan = BLUE;
+            DrawRectangleRec(barreira.retan,barreira.cor_retan);
+            if(CheckCollisionCircleRec(jogador.nave,jogador.raio,barreira.retan) && barreira.cor != jogador.cor && (*death) == 0)
+            {
+                (*death)++;
+            }
+            
+        }
+        if(barreira.cor == 2)
+        {
+            barreira.cor_retan = RED;
+            DrawRectangleRec(barreira.retan,barreira.cor_retan);
+            if(CheckCollisionCircleRec(jogador.nave,jogador.raio,barreira.retan) && barreira.cor != jogador.cor && (*death) == 0)
+            {
+                (*death)++;
+            }
+        }
+        barreira.retan.y += 15;
+    }
+    else
+    {
+        barreira.retan.y = 0;
+        barreira.cor = GetRandomValue(1,2);
+    }
+}
+
+void troca_cor()
+{
+    if(IsKeyPressed('Q'))
+    {
+        if(jogador.cor == 1)
+        {
+            jogador.cor_nave = RED;
+            jogador.cor = 2;
+        }
+        else if(jogador.cor == 2)
+        {
+            jogador.cor_nave = BLUE;
+            jogador.cor = 1;
+        }
+    }
 }
 
 void creditos()
@@ -109,7 +168,6 @@ void menuu (Texture2D* luacristal,Texture2D* nave,float* vol,Texture2D* fundo,So
                     DrawTexture(*luacristal,400,370,RAYWHITE);
                     DrawText(TextFormat("%i %i",posicaodomousex ,posicaodomousey), 190, 200, 20, LIGHTGRAY); 
                     DrawText(TextFormat("%i",cont), 190, 400, 20, LIGHTGRAY); 
-                    
                     
                         if (((posicaodomousex>=415)&&(posicaodomousex<=550))&&(posicaodomousey>=570)&&(posicaodomousey<=595))
                         {
@@ -223,87 +281,11 @@ void Movimento() //Função de movimentação
     }
     
 }
-float VolumeBalas(float* vol2){
-    if (IsKeyPressed(KEY_LEFT)&&*vol2>0.0f){
-            *vol2-=0.1f;
-        }
-        else if (IsKeyPressed(KEY_RIGHT)&&*vol2<1.0f){
-            *vol2+=0.1f;
-        }
-        return *vol2;
-}
-void SomDasBalas(int tiro,Sound* laser){
-    switch (tiro){
-        case 0:{
-            PlaySound(laser[1]);
-            break;
-        }
-        case 1:{
-            PlaySound(laser[1]);
-            PlaySound(laser[2]);
-            break;
-        }
-        case 2:{
-            PlaySound(laser[1]);
-            PlaySound(laser[2]);
-            PlaySound(laser[3]);
-            break;
-        }
-        case 3:{
-            PlaySound(laser[1]);
-            PlaySound(laser[2]);
-            PlaySound(laser[3]);
-            PlaySound(laser[0]);
-            break;
-        }
-        
-    }
-}
 
-void BarraEspecial(Player jogador,int* tiro, float* mult, Rectangle barra){
-    //atualiza os valores da barra para ficar embaixo da nave
-    barra.x= jogador.nave.x+1;
-    barra.y= jogador.nave.y+50;
-    barra.width= 39;
-    barra.height=10;
-    //verifica se ta apertando espaço ou não e aumenta ou diminue a barra
-    if (IsKeyDown(KEY_SPACE)&&*mult<1.0f){
-        *mult+=0.005f;
-    }
-    else if (!IsKeyDown(KEY_SPACE&&*mult>0.1f)){
-        *mult-=0.012f;
-    }
-    if (*mult<0.0f){
-        *mult=0.0f;
-    }
-    barra.width*=*mult;
-    if (*mult<=0.40){
-        *tiro=0;
-        DrawRectangleRec(barra,GREEN);
-    }
-    if (*mult>0.40f&&*mult<=0.70f){
-        *tiro=1;
-        DrawRectangleRec(barra,YELLOW);
-    }
-    else if (*mult>0.70f&&*mult<=0.90f){
-        *tiro=2;
-        DrawRectangleRec(barra,ORANGE);
-    }
-    else if (*mult>0.90f&&*mult<=1.1f){
-        *tiro=3;
-        DrawRectangleRec(barra,RED);
-    }
-    
-    
-    DrawRectangleLines(jogador.nave.x,jogador.nave.y+50,40,10,BLACK);
-}
 void Tiro(Player jogador,int* firerate)
 {
-    
-    
     if(IsKeyDown(KEY_SPACE)) //Se a barra de espaço está apertada, os tiros saem
-    {   
-        
+    {
         (*firerate)+=5; //A cada frame esse valor aumenta em 5, quando chegar em 20 uma bala é atirada (1 bala a cada 4 frames, pode ser alterado)
         if((*firerate) == 20)
         {
@@ -437,21 +419,21 @@ int main(void)
 {
     //criando variavel para menu ingame
     int checkmenu=0;
+    int mortes = 0;
     //Definindo resolução da tela
     const int Largura_Tela = 720;
     const int Altura_Tela = 876;
     //criando variavel dos arquivos de audio
     Sound menu;
-    Sound laser[4];
-    laser[0]=LoadSound("/raylib/StarlightDrift/sounds/laser.ogg");
-    laser[1]=LoadSound("/raylib/StarlightDrift/sounds/laser.ogg");
-    laser[2]=LoadSound("/raylib/StarlightDrift/sounds/laser.ogg");
-    laser[3]=LoadSound("/raylib/StarlightDrift/sounds/laser.ogg");
-    //criando var de volume e barra de especial
+    //criando var de volume
     float vol=1.0f;
-    float vol2=1.0f;
-    float mult=0;
     
+    barreira.retan.x = 0;
+    barreira.retan.y = 0;
+    barreira.retan.width = 720;
+    barreira.retan.height = 10;
+    barreira.cor = GetRandomValue(1,2);
+     
     //Definindo parâmetros do player(e alguns dos tiros do player)
     jogador.nave.x = 300;
     jogador.nave.y = 650;
@@ -460,14 +442,14 @@ int main(void)
     jogador.vel.y = 8;
     jogador.shotspeed.x = 2;
     jogador.shotspeed.y = 15;
-    jogador.cor_nave = BLACK;
+    jogador.cor_nave = BLUE;
     jogador.cor_bala = ORANGE;
+    jogador.cor = 1;
     jogador.raio = 10;
      jogador.tipo_tiro = 0;
     //declarando float de movimento da tela
      float movbackground = 0.0f;
-    //criando retangulo de especial
-    Rectangle barra;
+    
     
     //Inicializando janela e áudio
     InitWindow(Largura_Tela,Altura_Tela,"Starlight Drift");
@@ -480,11 +462,15 @@ int main(void)
     Image luadecristal = LoadImage("/raylib/StarlightDrift/texture/luatransparente.png");
     Image fundodecristal = LoadImage("/raylib/StarlightDrift/texture/fundosemluacopiacortada.png");
     Image FFXVdecristal = LoadImage("/raylib/StarlightDrift/texture/imagempqp.png");
+    Image nave_red = LoadImage("/raylib/StarlightDrift/texture/nave_vermelha.png");
+    Image nave_azul = LoadImage("/raylib/StarlightDrift/texture/nave_azul.png");
     ImageResize(&fundodecristal,1140,1752);
     ImageResize(&FFXVdecristal,720,465);
     ImageResize(&luadecristal,150,150);
     ImageResize(&background,720,876);
     ImageResize(&nave1,40,50);
+    ImageResize(&nave_red,40,50);
+    ImageResize(&nave_azul,40,50);
    // Texture2D bck = LoadTextureFromImage(imageyy);
     Texture2D FFXV = LoadTextureFromImage(FFXVdecristal);
     Texture2D nave = LoadTextureFromImage(nave1);
@@ -512,7 +498,6 @@ int main(void)
         
         menuu(&luacristal,&nave,&vol,&fundo,&menu,&FFXV,&Fundolua);
         
-        
     while(1)
     {
         //Começando a desenhar e chamando as funções
@@ -527,31 +512,30 @@ int main(void)
         if(movbackground >= background.height) movbackground = 0; //looping do background
         
         Troca_tiro(&jogador.tipo_tiro);
-        BeginDrawing();
+
         ClearBackground(RAYWHITE);
         DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
         DrawTextureEx(fundo,(Vector2){0,-background.height + movbackground},0.0f,1.0f,WHITE);
         //DrawCircle(jogador.nave.x,jogador.nave.y,8,jogador.cor_nave);
         DrawTexture(nave,jogador.nave.x,jogador.nave.y,RAYWHITE);
-        
         DrawText("0 - Tiro Normal",300,400,20,LIGHTGRAY);
         DrawText("1 - Tiro Duplo",300,430,20,LIGHTGRAY);
         DrawText("2 - Tiro Triplo",300,460,20,LIGHTGRAY);
         DrawText("3 - Tiro Duplo com 2 auxiliares",300,490,20,LIGHTGRAY);
+        DrawText("Cor da nave",50,150,30,jogador.cor_nave);
         DrawText(TextFormat("%i",jogador.tipo_tiro),200,200,20,BLACK);
+        if(mortes > 0)
+        {
+            DrawText(TextFormat("MORREU",mortes),50,180,15,WHITE);
+        }
+        barreira_de_cor(&mortes);
+        troca_cor();
         Tiro(jogador,&jogador.firerate);
-        if (IsKeyDown(KEY_SPACE)){
-            SomDasBalas(jogador.tipo_tiro,laser);
-        }
-        vol2=VolumeBalas(&vol2);
-        for (int i=0;i<4;i++){
-            SetSoundVolume(laser[i],vol2);
-        }
-        BarraEspecial(jogador,&jogador.tipo_tiro,&mult,barra);
+        
         EndDrawing();
     }
 }
    // UnloadTexture(bck); 
-    UnloadTexture(nave);    
+    UnloadTexture(nave);
     return 0;
 }
