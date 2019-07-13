@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 //-------------------------------------
 //defines
@@ -82,6 +83,9 @@ static GAMESTATE Creditos(void);     //Creditos
 static GAMESTATE Ops(void);          //Opções
 static void UpdateGame(void);   //Atualiza a matematica do frame
 static void DrawGame(void);     //Desenha o frame
+//static void LoadArq(void); //loada os arq
+static void Wave1(FILE* lado1,FILE* lado2); //wave de teste
+//static void UnloadArq(void);//unloada arq
 
 
 
@@ -92,7 +96,6 @@ int main(void)
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
     SetTargetFPS(60);
-    
     while(1)
     {
         switch(gameState)
@@ -153,6 +156,24 @@ void UnloadMenu(void)
     UnloadTexture(Fundolua);
 }
 
+/*void LoadArq(void)
+{
+    FILE* lado1 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
+    FILE* lado2 = fopen ("/raylib/StarlightDrift/enemy/padrao2.txt","r");
+}
+void UnloadArq(void)
+{
+    fclose(lado1);
+    fclose(lado2);
+}*/
+void Wave1(FILE* lado1,FILE* lado2)
+{
+    int a,b,c,d;
+    fscanf (lado1, "%i %i\n",&a,&b);
+    DrawCircle(a,b,10,RED);
+    fscanf (lado2, "%i %i\n",&c,&d);
+    DrawCircle(c,d,10,RED);
+}
 void InitGame(void){
     Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
     
@@ -371,6 +392,9 @@ GAMESTATE Jogo(void)
     float alpha = 1.0f;
     bool FadeIn = true;
     bool FadeOut = false;
+    //LoadArq();
+    FILE* lado1 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
+    FILE* lado2 = fopen ("/raylib/StarlightDrift/enemy/padrao2.txt","r");
     
     while(!WindowShouldClose())
     {
@@ -400,10 +424,14 @@ GAMESTATE Jogo(void)
 
         UpdateGame();
         DrawGame();
+        Wave1(lado1,lado2);
         DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         
         EndDrawing();
     }   
+   // UnloadArq();
+    fclose(lado1);
+    fclose(lado2);
 }
 
 GAMESTATE Ops(void)
