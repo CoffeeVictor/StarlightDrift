@@ -183,6 +183,7 @@ void Inicializa_jogador(void)
     jogador.vel.x = 8;
     jogador.vel.y = 8;
     jogador.cor = BLUE;
+    jogador.firerate = 0;
     jogador.raio = 8;
     jogador.tiro = 1;
 }
@@ -209,6 +210,7 @@ void UpdateGame(void){
     }
     
     Movimento();
+    Atirar();
     
 }
 void DrawGame(void){
@@ -221,7 +223,35 @@ void DrawGame(void){
     {
         if(tiro[i].ativa)
         {
+            tiro[i].posicao.y -= tiro[i].vel_bala.y;
             DrawCircle(tiro[i].posicao.x,tiro[i].posicao.y,3,tiro[i].cor);
+        }
+        if(tiro[i].posicao.y <=0)
+        {
+            tiro[i].ativa = false;
+        }
+    }
+}
+
+void Atirar(void)
+{
+    if(IsKeyDown(KEY_SPACE))
+    {
+        jogador.firerate += 5;
+        
+        if(jogador.firerate == 20)
+        {
+            for(int i = 0;i<MAX_TIROS;i++)
+            {
+                if(!tiro[i].ativa)
+                {
+                    tiro[i].posicao.x = jogador.posicao.x + 20;
+                    tiro[i].posicao.y = jogador.posicao.y + 8;
+                    tiro[i].ativa = true;
+                    break;
+                }
+            }
+            jogador.firerate = 0;
         }
     }
 }
