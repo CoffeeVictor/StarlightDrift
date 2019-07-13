@@ -222,7 +222,7 @@ void Inicializa_tiro(void)
 }
 void UnloadGame(void){
     UnloadTexture(Nave);
-    UnloadTexture(FundodeFernando);
+    UnloadTexture(fundo);
 }
 void UpdateGame(void){
     movbackground += 3.0; //velocidade do background
@@ -396,9 +396,10 @@ GAMESTATE Jogo(void)
     FILE* lado1 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
     FILE* lado2 = fopen ("/raylib/StarlightDrift/enemy/padrao2.txt","r");
     
-    while(!WindowShouldClose())
+    while(1)
     {
-        
+        if(IsKeyPressed('P'))
+            FadeOut = true;
         if(FadeIn)
         {
             alpha -= 0.01f;
@@ -413,6 +414,8 @@ GAMESTATE Jogo(void)
             alpha += 0.01f;
             if (alpha >= 1)
             {
+                fclose(lado1);
+                fclose(lado2);
                 alpha = 1.0f;
                 return MENU;
             }
@@ -432,6 +435,7 @@ GAMESTATE Jogo(void)
    // UnloadArq();
     fclose(lado1);
     fclose(lado2);
+   
 }
 
 GAMESTATE Ops(void)
