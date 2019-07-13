@@ -76,6 +76,7 @@ static void Inicializa_tiro(void);
 static void Inicializa_jogador(void);
 static void InitMenu(void);     //Iniciar arquivos do menu 
 static void UnloadMenu(void);   //Descarregar arquivos do menu
+static void Pause(void);    //pausa o jogo 
 static GAMESTATE LevelSelect(void);      //Escolhe a fase
 static GAMESTATE Jogo(void);
 static GAMESTATE MenuScreen(void);   //Menu inicial
@@ -316,7 +317,23 @@ int Level3(int Vidas){
     }
     return Vidas;
 }
-
+void Pause(void)
+{   
+   
+        
+        while(1)
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            DrawText("PAUSE",150,50,50,RAYWHITE);
+            DrawText("Para voltar pressione P",70,150,20,RAYWHITE);
+            DrawText("Para ir para o menu pressione M Durante o Jogo",70,250,20,RAYWHITE);
+            EndDrawing();
+            if(IsKeyPressed(KEY_P))
+                break;
+        }
+    
+}
 GAMESTATE LevelSelect (void){
     int vidas = 3;
     InitGame();
@@ -398,8 +415,10 @@ GAMESTATE Jogo(void)
     
     while(1)
     {
-        if(IsKeyPressed('P'))
+        if(IsKeyPressed('M'))
             FadeOut = true;
+        if(IsKeyPressed('P'))
+            Pause();
         if(FadeIn)
         {
             alpha -= 0.01f;
