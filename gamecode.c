@@ -19,6 +19,7 @@ typedef struct Tiro
     Vector2 posicao;
     Vector2 vel_bala;
     Color cor;
+    float raio;
     bool ativa;
 }Tiro;
 
@@ -48,10 +49,14 @@ static Texture2D FundodeFernando;
 static Texture2D FFXV;
 static Texture2D luacristal;
 static Texture2D Fundolua;
+static Texture2D enemi;
 static GAMESTATE gameState;
-
+static FILE* inimigo[20];
 static Sound menu;
 static Sound Laser;
+static int a,b,c,d,e,f,g,h,i,j,k,l;
+static Rectangle foe[20] = {0};
+static bool foebool[20];
 
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
@@ -85,7 +90,7 @@ static GAMESTATE Ops(void);          //Opções
 static void UpdateGame(void);   //Atualiza a matematica do frame
 static void DrawGame(void);     //Desenha o frame
 //static void LoadArq(void); //loada os arq
-static void Wave1(FILE* lado1,FILE* lado2); //wave de teste
+//static void Wave1(FILE* lado1,FILE* lado2); //wave de teste
 //static void UnloadArq(void);//unloada arq
 
 
@@ -167,38 +172,54 @@ void UnloadArq(void)
     fclose(lado1);
     fclose(lado2);
 }*/
-void Wave1(FILE* lado1,FILE* lado2)
+void Wave1()
 {
-    int a,b,c,d;
-    fscanf (lado1, "%i %i\n",&a,&b);
-    DrawCircle(a,b,10,RED);
-    fscanf (lado2, "%i %i\n",&c,&d);
-    DrawCircle(c,d,10,RED);
-}
-void InitGame(void){
-    StopSound(menu);
+    fscanf (inimigo[0], "%i %i\n",&a,&b);
+    fscanf (inimigo[1], "%i %i\n",&c,&d);
+    fscanf (inimigo[2], "%i %i\n",&e,&f);
+    fscanf (inimigo[3], "%i %i\n",&g,&h);
+    fscanf (inimigo[4], "%i %i\n",&i,&j);
+    fscanf (inimigo[5], "%i %i\n",&k,&l);
     
-    Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
+    for(int i=0;i<6;i++)
+    {
+        foe[i].height = 40;
+        foe[i].width = 50;
+        if(i==0)
+        {
+            foe[i].x = a;
+            foe[i].y = b;
+        }
+        else if(i==1)
+        {
+            foe[i].x = c;
+            foe[i].y = d;
+        }
+        else if(i==2)
+        {
+            foe[i].x = e;
+            foe[i].y = f;
+        }
+        else if(i==3)
+        {
+            foe[i].x = g;
+            foe[i].y = h;
+        }
+        else if(i==4)
+        {
+            foe[i].x = i;
+            foe[i].y = j;
+        }
+        else if(i==5)
+        {
+            foe[i].x = k;
+            foe[i].y = l;
+        }
+    }
     
-    ImageResize(&NaveImg,40,50);
     
     
-    Nave = LoadTextureFromImage(NaveImg);
-   
-    InitMovBackground();
-    Inicializa_jogador();
-    Inicializa_tiro();
     
-    UnloadImage(NaveImg);
-}
-void InitMovBackground(void){
-    Image FundodeFernando = LoadImage("/raylib/StarlightDrift/texture/space.png");
-    
-    ImageResize(&FundodeFernando,720,876);
-    
-    fundo=LoadTextureFromImage(FundodeFernando);
-    
-    UnloadImage(FundodeFernando);
 }
 void Inicializa_jogador(void)
 {
@@ -211,6 +232,41 @@ void Inicializa_jogador(void)
     jogador.raio = 8;
     jogador.tiro = 1;
 }
+void InitGame(void){
+    StopSound(menu);
+    
+    Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
+    
+    ImageResize(&NaveImg,40,50);
+   
+    Nave = LoadTextureFromImage(NaveImg);
+    
+    Image enemy = LoadImage("/raylib/StarlightDrift/texture/inimigo.png");
+    ImageResize(&enemy,40,50);
+    enemi = LoadTextureFromImage(enemy);
+    UnloadImage(enemy);
+   
+    InitMovBackground();
+    Inicializa_jogador();
+    Inicializa_tiro();
+    
+    for(int i = 0;i<20;i++)
+    {
+        foebool[i] = true;
+    }
+    
+    UnloadImage(NaveImg);
+}
+void InitMovBackground(void){
+    Image FundodeFernando = LoadImage("/raylib/StarlightDrift/texture/space.png");
+    
+    ImageResize(&FundodeFernando,720,876);
+    
+    fundo=LoadTextureFromImage(FundodeFernando);
+    
+    UnloadImage(FundodeFernando);
+}
+
 void Inicializa_tiro(void)
 {
     for(int i = 0;i<MAX_TIROS;i++)
@@ -219,13 +275,21 @@ void Inicializa_tiro(void)
         tiro[i].posicao.y = jogador.posicao.y + 8;
         tiro[i].vel_bala.y = 15;
         tiro[i].vel_bala.x = 2;
+        tiro[i].raio = 3;
         tiro[i].ativa = false;
         tiro[i].cor = ORANGE;
     }
 }
+
+
 void UnloadGame(void){
     UnloadTexture(Nave);
     UnloadTexture(fundo);
+    // UnloadArq();
+    for(int i=0;i<6;i++)
+    {
+        fclose(inimigo[i]);
+    }
 }
 void UpdateGame(void){
     movbackground += 3.0; //velocidade do background
@@ -242,6 +306,36 @@ void DrawGame(void){
     DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
     DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    
+    for(int i = 0;i<6;i++)
+    {
+        for(int j = 0;j<MAX_TIROS;j++)
+        {
+            if(tiro[j].ativa && CheckCollisionCircleRec(tiro[j].posicao,tiro[j].raio,foe[i]))
+            {
+                //foehp[i]-=5
+                
+                //if(foehp[i] == 0)
+                //{
+                    foebool[i] = false;
+                //}
+            }
+        }
+    }
+    
+    for(int i = 0;i<6;i++)
+    {
+        if(foebool[i])
+        {
+            DrawTexture(enemi,foe[i].x,foe[i].y,RAYWHITE);
+        }
+    }
+    
+    /*DrawTexture(enemi,c,d,RAYWHITE);
+    DrawTexture(enemi,e,f,RAYWHITE);
+    DrawTexture(enemi,g,h,RAYWHITE);
+    DrawTexture(enemi,i,j,RAYWHITE);
+    DrawTexture(enemi,k,l,RAYWHITE);*/
     
     for(int i = 0;i<MAX_TIROS;i++)
     {
@@ -351,7 +445,7 @@ GAMESTATE Creditos(void)
     
     char texto[] = "Game Developers:\nJoão Victor Galdino\nJosé Rodrigues Neto\nLucas Fernandes Lins\nLuiz Fernando Barbosa\nMatheus Felipe Lima\n\nThis game was developed as a test for the introduction programming class by students of the Rural Federal University of Pernambuco (UFRPE) with the supervision of Professor Péricles Miranda\n\nThis game is not meant to be commercialized in any way whatsoever. We DO NOT own any of the images or sounds used in this game. Any similarities between the events portraited in this game and the real world are purely coincidental.\n\nSpecial Thanks to @raysan5, creator of Raylib\n\nSpecial Thanks to the coffee that was converted into this game's lines of code\n\n\nHomem Negro Fodase.";
     
-    while(!WindowShouldClose())
+    while(1)
     {
     PosicaoMouse = GetMousePosition();
     if(FadeIn)
@@ -398,8 +492,12 @@ GAMESTATE Jogo(void)
     bool FadeIn = true;
     bool FadeOut = false;
     //LoadArq();
-    FILE* lado1 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
-    FILE* lado2 = fopen ("/raylib/StarlightDrift/enemy/padrao2.txt","r");
+    inimigo[0] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
+    inimigo[1] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt2","r");
+    inimigo[2] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt3","r");
+    inimigo[3]= fopen ("/raylib/StarlightDrift/enemy/enemies.txt4","r");
+    inimigo[4] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt5","r");
+    inimigo[5] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt6","r");
     
     while(1)
     {
@@ -421,8 +519,7 @@ GAMESTATE Jogo(void)
             alpha += 0.01f;
             if (alpha >= 1)
             {
-                fclose(lado1);
-                fclose(lado2);
+                
                 alpha = 1.0f;
                 return MENU;
             }
@@ -432,13 +529,12 @@ GAMESTATE Jogo(void)
         UpdateGame();
         BeginDrawing();
         DrawGame();
-        Wave1(lado1,lado2);
+        
+        Wave1();
         DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         EndDrawing();
     }   
-   // UnloadArq();
-    fclose(lado1);
-    fclose(lado2);
+   
    
 }
 
@@ -452,7 +548,7 @@ GAMESTATE Ops(void)
     
     if(!IsSoundPlaying(menu)) PlaySound(menu);
     
-    while(!WindowShouldClose())
+    while(1)
     {
         PosicaoMouse = GetMousePosition();
         
