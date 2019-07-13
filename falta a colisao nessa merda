@@ -36,7 +36,7 @@ typedef struct Player
 //Variaveis Globais
 //-------------------------------------
 static const int Largura_Tela = 720;
-static const int Altura_Tela = 756;
+static const int Altura_Tela = 876;
 static bool gameOver = false;
 static bool pause = false;
 
@@ -50,10 +50,11 @@ static Texture2D luacristal;
 static Texture2D Fundolua;
 static Texture2D enemi;
 static GAMESTATE gameState;
-static int a,b,c,d,e,f,g,h,i,j,k,l;
-static Rectangle foe[6] = {0};
+static FILE* inimigo[20];
 static Sound menu;
 static Sound Laser;
+static int a,b,c,d,e,f,g,h,i,j,k,l;
+static Rectangle foe[20] = {0};
 
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
@@ -78,6 +79,7 @@ static void Inicializa_tiro(void);
 static void Inicializa_jogador(void);
 static void InitMenu(void);     //Iniciar arquivos do menu 
 static void UnloadMenu(void);   //Descarregar arquivos do menu
+static void Pause(void);    //pausa o jogo 
 static GAMESTATE LevelSelect(void);      //Escolhe a fase
 static GAMESTATE Jogo(void);
 static GAMESTATE MenuScreen(void);   //Menu inicial
@@ -85,6 +87,9 @@ static GAMESTATE Creditos(void);     //Creditos
 static GAMESTATE Ops(void);          //Opções
 static void UpdateGame(void);   //Atualiza a matematica do frame
 static void DrawGame(void);     //Desenha o frame
+//static void LoadArq(void); //loada os arq
+//static void Wave1(FILE* lado1,FILE* lado2); //wave de teste
+//static void UnloadArq(void);//unloada arq
 
 
 
@@ -95,8 +100,6 @@ int main(void)
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
     SetTargetFPS(60);
-    
-    
     while(1)
     {
         switch(gameState)
@@ -157,45 +160,24 @@ void UnloadMenu(void)
     UnloadTexture(Fundolua);
 }
 
-void InitGame(void){
-    Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
-    
-    ImageResize(&NaveImg,40,50);
-    
-    
-    Nave = LoadTextureFromImage(NaveImg);
-    
-    Image enemy = LoadImage("/raylib/StarlightDrift/texture/inimigo.png");
-    ImageResize(&enemy,40,50);
-    enemi = LoadTextureFromImage(enemy);
-    UnloadImage(enemy);
-   
-    InitMovBackground();
-    Inicializa_jogador();
-    Inicializa_tiro();
-    
-    UnloadImage(NaveImg);
-    
-    
-}
-void InitMovBackground(void){
-    Image FundodeFernando = LoadImage("/raylib/StarlightDrift/texture/space.png");
-    
-    ImageResize(&FundodeFernando,720,876);
-    
-    fundo=LoadTextureFromImage(FundodeFernando);
-    
-    UnloadImage(FundodeFernando);
-}
-void Inicializa_inimigo(FILE* inimigos, FILE* inimigo2, FILE* inimigo3, FILE* inimigo4, FILE* inimigo5, FILE* inimigo6)
+/*void LoadArq(void)
 {
-    
-    fscanf (inimigos, "%i %i\n",&a,&b);
-    fscanf (inimigo2, "%i %i\n",&c,&d);
-    fscanf (inimigo3, "%i %i\n",&e,&f);
-    fscanf (inimigo4, "%i %i\n",&g,&h);
-    fscanf (inimigo5, "%i %i\n",&i,&j);
-    fscanf (inimigo6, "%i %i\n",&k,&l);
+    FILE* lado1 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
+    FILE* lado2 = fopen ("/raylib/StarlightDrift/enemy/padrao2.txt","r");
+}
+void UnloadArq(void)
+{
+    fclose(lado1);
+    fclose(lado2);
+}*/
+void Wave1()
+{
+    fscanf (inimigo[0], "%i %i\n",&a,&b);
+    fscanf (inimigo[1], "%i %i\n",&c,&d);
+    fscanf (inimigo[2], "%i %i\n",&e,&f);
+    fscanf (inimigo[3], "%i %i\n",&g,&h);
+    fscanf (inimigo[4], "%i %i\n",&i,&j);
+    fscanf (inimigo[5], "%i %i\n",&k,&l);
     
     for(int i=0;i<6;i++)
     {
@@ -240,6 +222,8 @@ void Inicializa_inimigo(FILE* inimigos, FILE* inimigo2, FILE* inimigo3, FILE* in
     DrawTexture(enemi,i,j,RAYWHITE);
     DrawTexture(enemi,k,l,RAYWHITE);
     
+    
+    
 }
 void Inicializa_jogador(void)
 {
@@ -251,8 +235,37 @@ void Inicializa_jogador(void)
     jogador.firerate = 0;
     jogador.raio = 8;
     jogador.tiro = 1;
-    
 }
+void InitGame(void){
+    StopSound(menu);
+    
+    Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
+    
+    ImageResize(&NaveImg,40,50);
+   
+    Nave = LoadTextureFromImage(NaveImg);
+    
+    Image enemy = LoadImage("/raylib/StarlightDrift/texture/inimigo.png");
+    ImageResize(&enemy,40,50);
+    enemi = LoadTextureFromImage(enemy);
+    UnloadImage(enemy);
+   
+    InitMovBackground();
+    Inicializa_jogador();
+    Inicializa_tiro();
+    
+    UnloadImage(NaveImg);
+}
+void InitMovBackground(void){
+    Image FundodeFernando = LoadImage("/raylib/StarlightDrift/texture/space.png");
+    
+    ImageResize(&FundodeFernando,720,876);
+    
+    fundo=LoadTextureFromImage(FundodeFernando);
+    
+    UnloadImage(FundodeFernando);
+}
+
 void Inicializa_tiro(void)
 {
     for(int i = 0;i<MAX_TIROS;i++)
@@ -265,12 +278,11 @@ void Inicializa_tiro(void)
         tiro[i].cor = ORANGE;
     }
 }
+
+
 void UnloadGame(void){
     UnloadTexture(Nave);
-    UnloadTexture(FundodeFernando);
-    UnloadTexture(enemi);
-    
-    
+    UnloadTexture(fundo);
 }
 void UpdateGame(void){
     movbackground += 3.0; //velocidade do background
@@ -281,10 +293,6 @@ void UpdateGame(void){
     Movimento();
     Atirar();
     
-   
-    
-    
-    
 }
 void DrawGame(void){
     ClearBackground(BLACK);
@@ -292,9 +300,6 @@ void DrawGame(void){
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
     DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
     
-     
-   
-     
     for(int i = 0;i<MAX_TIROS;i++)
     {
         if(tiro[i].ativa)
@@ -371,22 +376,24 @@ int Level3(int Vidas){
     }
     return Vidas;
 }
-
-GAMESTATE LevelSelect (void){
-    int vidas = 3;
-    InitGame();
-    if (vidas>0){
-        vidas = Level1(vidas);
-    }
-    if (vidas>0){
-        vidas = Level2(vidas);
-    }
-    if (vidas>0){
-        vidas = Level3(vidas);
-    }
-    UnloadGame();
-    return MENU;
+void Pause(void)
+{   
+   
+        
+        while(1)
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            DrawText("PAUSE",150,50,50,RAYWHITE);
+            DrawText("Para voltar pressione P",70,150,20,RAYWHITE);
+            DrawText("Para ir para o menu pressione M durante o jogo",70,250,20,RAYWHITE);
+            EndDrawing();
+            if(IsKeyPressed(KEY_P))
+                break;
+        }
+    
 }
+
 GAMESTATE Creditos(void)
 {
     float alpha = 1.0f;
@@ -447,19 +454,20 @@ GAMESTATE Jogo(void)
     float alpha = 1.0f;
     bool FadeIn = true;
     bool FadeOut = false;
+    //LoadArq();
+    inimigo[0] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
+    inimigo[1] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt2","r");
+    inimigo[2] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt3","r");
+    inimigo[3]= fopen ("/raylib/StarlightDrift/enemy/enemies.txt4","r");
+    inimigo[4] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt5","r");
+    inimigo[5] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt6","r");
     
-    FILE * inimigos = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
-    FILE * inimigo2 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt2","r");
-    FILE * inimigo3 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt3","r");
-    FILE * inimigo4 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt4","r");
-    FILE * inimigo5 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt5","r");
-    FILE * inimigo6 = fopen ("/raylib/StarlightDrift/enemy/enemies.txt6","r");
-
-    
-    
-    while(!WindowShouldClose())
+    while(1)
     {
-        
+        if(IsKeyPressed('M'))
+            FadeOut = true;
+        if(IsKeyPressed('P'))
+            Pause();
         if(FadeIn)
         {
             alpha -= 0.01f;
@@ -474,39 +482,27 @@ GAMESTATE Jogo(void)
             alpha += 0.01f;
             if (alpha >= 1)
             {
+                
                 alpha = 1.0f;
                 return MENU;
             }
         }
         
-        StopSound(menu);
-        
-        BeginDrawing();
         
         UpdateGame();
+        BeginDrawing();
         DrawGame();
-        Inicializa_inimigo(inimigos, inimigo2,inimigo3, inimigo4, inimigo5, inimigo6);
-        DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         
+        Wave1();
+        DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         EndDrawing();
-         
-   for(int i=0; i<MAX_TIROS;i++)
+    }   
+   // UnloadArq();
+    for(int i=0;i<6;i++)
     {
-        if(tiro[i].ativa)
-        {
-            for(int l = 0;l<6;l++)
-            {
-                if(CheckCollisionCircleRec((Vector2){tiro[i].posicao.x, tiro[i].posicao.y}, 3, foe[l]))
-                    {
-                        foe[l].x = 0;
-                        foe[l].y = 0;
-                        break;
-                    }
-            }
-        }
+        fclose(inimigo[i]);
     }
-    }  
-   fclose(inimigos);
+   
 }
 
 GAMESTATE Ops(void)
@@ -634,7 +630,7 @@ GAMESTATE MenuScreen(void)
     
     if(!IsSoundPlaying(menu)) PlaySound(menu);
     
-    while(!WindowShouldClose())
+    while(1)
     {
         //Maths
         
