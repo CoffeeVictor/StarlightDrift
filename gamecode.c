@@ -176,6 +176,8 @@ void Wave1(FILE* lado1,FILE* lado2)
     DrawCircle(c,d,10,RED);
 }
 void InitGame(void){
+    StopSound(menu);
+    
     Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
     
     ImageResize(&NaveImg,40,50);
@@ -327,28 +329,14 @@ void Pause(void)
             ClearBackground(BLACK);
             DrawText("PAUSE",150,50,50,RAYWHITE);
             DrawText("Para voltar pressione P",70,150,20,RAYWHITE);
-            DrawText("Para ir para o menu pressione M Durante o Jogo",70,250,20,RAYWHITE);
+            DrawText("Para ir para o menu pressione M durante o jogo",70,250,20,RAYWHITE);
             EndDrawing();
             if(IsKeyPressed(KEY_P))
                 break;
         }
     
 }
-GAMESTATE LevelSelect (void){
-    int vidas = 3;
-    InitGame();
-    if (vidas>0){
-        vidas = Level1(vidas);
-    }
-    if (vidas>0){
-        vidas = Level2(vidas);
-    }
-    if (vidas>0){
-        vidas = Level3(vidas);
-    }
-    UnloadGame();
-    return MENU;
-}
+
 GAMESTATE Creditos(void)
 {
     float alpha = 1.0f;
@@ -440,15 +428,12 @@ GAMESTATE Jogo(void)
             }
         }
         
-        StopSound(menu);
         
-        BeginDrawing();
-
         UpdateGame();
+        BeginDrawing();
         DrawGame();
         Wave1(lado1,lado2);
         DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
-        
         EndDrawing();
     }   
    // UnloadArq();
@@ -582,7 +567,7 @@ GAMESTATE MenuScreen(void)
     
     if(!IsSoundPlaying(menu)) PlaySound(menu);
     
-    while(!WindowShouldClose())
+    while(1)
     {
         //Maths
         
