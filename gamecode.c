@@ -26,6 +26,7 @@ typedef struct Tiro
     Vector2 vel_bala;
     Color cor;
     bool ativa;
+    int raio;
 }Tiro;
 
 typedef struct Player
@@ -300,6 +301,7 @@ void Inicializa_tiro(void)
         tiro[i].posicao.y = jogador.posicao.y + 8;
         tiro[i].vel_bala.y = 15;
         tiro[i].vel_bala.x = 2;
+        tiro[i].raio = 3;
         tiro[i].ativa = false;
         tiro[i].cor = ORANGE;
     }
@@ -328,7 +330,7 @@ void UpdateGame(void){
     Atirar();
     for(int i=0;i<6;i++)
     {
-    if(CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
+    if(foebool[i] && CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
         {
             vida--;
             jogador.posicao.x = 360;
@@ -344,6 +346,23 @@ void DrawGame(void){
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
     DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
     
+     for(int i = 0;i<6;i++)
+    {
+        for(int j = 0;j<MAX_TIROS;j++)
+        {
+            if(tiro[j].ativa && CheckCollisionCircleRec(tiro[j].posicao,tiro[j].raio,foe[i]))
+            {
+                //foehp[i]-=5
+                
+                //if(foehp[i] == 0)
+                //{
+                    foebool[i] = false;
+                //}
+            }
+        }
+    }
+    
+  
     for(int i = 0;i<MAX_TIROS;i++)
     {
         if(tiro[i].ativa)
@@ -713,7 +732,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
-                UnloadSound(triste);
+                //UnloadSound(triste);
                 fade = true;
                 returnstate = MENU;
             }
@@ -729,7 +748,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
-                UnloadSound(triste);
+                //UnloadSound(triste);
                 fade = true;
                 returnstate = JOGO;
             }
