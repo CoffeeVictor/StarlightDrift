@@ -14,13 +14,18 @@
 
 typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, MORTE, SAIR} GAMESTATE;
 
+
+typedef struct Musica{
+    Sound mus;
+    bool ativa;
+}Musica;
+
 typedef struct Tiro
 {
     Vector2 posicao;
     Vector2 vel_bala;
     Color cor;
     bool ativa;
-    float raio;
 }Tiro;
 
 typedef struct Player
@@ -32,7 +37,6 @@ typedef struct Player
     float firerate;
     int tiro;
 }Player;
-
 
 //-------------------------------------
 //Variaveis Globais
@@ -53,6 +57,8 @@ static Texture2D Fundolua;
 static Texture2D enemi;
 static GAMESTATE gameState;
 static FILE* inimigo[20];
+static int numMusica=0;
+static Musica musica[10];
 static Sound menu;
 static Sound Laser;
 static Sound triste;
@@ -75,8 +81,8 @@ static void InitMovBackground(void);
 static int Level1(int Vidas);       //Level1 
 static int Level2(int Vidas);       //Level2 
 static int Level3(int Vidas);       //Level3
-
-
+static void ChoiceMusic(void);
+static void InitMusic(void);
 static void InitGame(void);     //Iniciar o jogo
 static void UnloadGame(void);   //Descarregar arquivos do jogo
 static void Movimento(void);
@@ -105,7 +111,7 @@ int main(void)
     InitWindow(Largura_Tela, Altura_Tela, "Starlight Drift Limpo");
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
-    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
+    
     SetTargetFPS(60);
     while(1)
     {
@@ -193,41 +199,38 @@ void Wave1()
     
     for(int i=0;i<6;i++)
     {
-        if(foebool)
+        foe[i].height = 40;
+        foe[i].width = 50;
+        if(i==0)
         {
-            foe[i].height = 40;
-            foe[i].width = 50;
-            if(i==0)
-            {
-                foe[i].x = a;
-                foe[i].y = b;
-            }
-            else if(i==1)
-            {
-                foe[i].x = c;
-                foe[i].y = d;
-            }
-            else if(i==2)
-            {
-                foe[i].x = e;
-                foe[i].y = f;
-            }
-            else if(i==3)
-            {
-                foe[i].x = g;
-                foe[i].y = h;
-            }
-            else if(i==4)
-            {
-                foe[i].x = i;
-                foe[i].y = j;
-            }
-            else if(i==5)
-            {
-                foe[i].x = k;
-                foe[i].y = l;
-            }
-        }    
+            foe[i].x = a;
+            foe[i].y = b;
+        }
+        else if(i==1)
+        {
+            foe[i].x = c;
+            foe[i].y = d;
+        }
+        else if(i==2)
+        {
+            foe[i].x = e;
+            foe[i].y = f;
+        }
+        else if(i==3)
+        {
+            foe[i].x = g;
+            foe[i].y = h;
+        }
+        else if(i==4)
+        {
+            foe[i].x = i;
+            foe[i].y = j;
+        }
+        else if(i==5)
+        {
+            foe[i].x = k;
+            foe[i].y = l;
+        }
     }
     for(int i=0;i<6;i++)
     if(foebool[i])
@@ -258,6 +261,7 @@ void Inicializa_inimigo(void)
 }
 void InitGame(void){
     StopSound(menu);
+    InitMusic();
     
     Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
     
@@ -296,7 +300,6 @@ void Inicializa_tiro(void)
         tiro[i].posicao.y = jogador.posicao.y + 8;
         tiro[i].vel_bala.y = 15;
         tiro[i].vel_bala.x = 2;
-        tiro[i].raio = 3;
         tiro[i].ativa = false;
         tiro[i].cor = ORANGE;
     }
@@ -306,8 +309,16 @@ void Inicializa_tiro(void)
 void UnloadGame(void){
     UnloadTexture(Nave);
     UnloadTexture(fundo);
+    if (musica[numMusica].ativa){
+        StopSound(musica[numMusica].mus);
+        UnloadSound(musica[numMusica].mus);
+    }
+
 }
 void UpdateGame(void){
+    if(!musica[numMusica].ativa){
+        ChoiceMusic();
+    }
     movbackground += 3.0; //velocidade do background
     if(movbackground >= fundo.height) {
         movbackground = 0; //looping do background
@@ -317,16 +328,12 @@ void UpdateGame(void){
     Atirar();
     for(int i=0;i<6;i++)
     {
-    if(foebool[i] && CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
+    if(CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
         {
             vida--;
             jogador.posicao.x = 360;
             jogador.posicao.y = 700;
             foebool[i]=false;
-            
-          
-            
-            
             
         }
     }
@@ -336,34 +343,6 @@ void DrawGame(void){
     DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
     DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
-    
-    
-    for(int i = 0;i<6;i++)
-    {
-        for(int j = 0;j<MAX_TIROS;j++)
-        {
-            if(tiro[j].ativa && CheckCollisionCircleRec(tiro[j].posicao,tiro[j].raio,foe[i]))
-            {
-                //foehp[i]-=5
-                
-                //if(foehp[i] == 0)
-                //{
-                    foebool[i] = false;
-                //}
-            }
-        }
-    }
-    
-    /*for(int i = 0;i<6;i++)
-    {
-        if(foebool[i])
-        {
-            DrawTexture(enemi,foe[i].x,foe[i].y,RAYWHITE);
-        }
-    }*/
-    
-    
-    
     
     for(int i = 0;i<MAX_TIROS;i++)
     {
@@ -457,6 +436,53 @@ void Pause(void)
                 break;
         }
     
+}
+void InitMusic(void){
+    for (int i=0;i<10;i++){
+        musica[i].ativa=false;
+    }
+    numMusica=2;
+}
+void ChoiceMusic(void){
+    if (musica[numMusica].ativa){
+        UnloadSound(musica[numMusica].mus);
+    }
+    numMusica=GetRandomValue(2,9);
+    switch (numMusica){
+        case 2:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Hatsune Miku - Melt PV.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 3:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/One Punch Man - Official Opening - The Hero!! Set Fire to the Furious Fist.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 4:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Dragon Ball Super OST - Ka Ka Kachi Daze  LYRICS  ULTRA INSTINCT THEME.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 5:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Death Note Opening 1 completo full HD.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 6:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Chopin  Etude No.2 in A minor Op10-2 on guitar.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 7:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/10 - Faraway 380,000-Kilometer Voyage.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 8:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/01 - The Space Shrine Maiden Appears.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 9:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/07 - Eternal Spring Dream.mp3");
+        musica[numMusica].ativa=true;
+        break;
+    }
+    PlaySound(musica[numMusica].mus);
 }
 
 GAMESTATE Creditos(void)
@@ -643,6 +669,7 @@ GAMESTATE Ops(void)
 
 GAMESTATE morte(void)
 {
+    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     bool fade = false;
     bool fadein = true;
     Rectangle recsair = {415, 620, 85, 25};
@@ -686,6 +713,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
+                UnloadSound(triste);
                 fade = true;
                 returnstate = MENU;
             }
@@ -701,6 +729,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
+                UnloadSound(triste);
                 fade = true;
                 returnstate = JOGO;
             }
