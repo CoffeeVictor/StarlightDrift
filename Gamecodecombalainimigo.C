@@ -37,6 +37,7 @@ typedef struct Player
     float raio;
     float firerate;
     int tiro;
+    float invicible;
 }Player;
 
 typedef struct Inimigo    //********************************************************************************************************************
@@ -79,6 +80,7 @@ static Sound triste;
 static Inimigo foe[6]={0};//struct inimigo declarada aqui
 static bool foebool[20];
 static int vida;
+static int iFrame;
 
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
@@ -127,6 +129,7 @@ int main(void)
     InitWindow(Largura_Tela, Altura_Tela, "Starlight Drift Limpo");
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
+    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     
     SetTargetFPS(60);
     while(1)
@@ -237,6 +240,7 @@ void Inicializa_jogador(void)
     jogador.firerate = 0;
     jogador.raio = 8;
     jogador.tiro = 1;
+    jogador.invicible = false;
 }
 void Inicializa_inimigo(void)
 {
@@ -325,12 +329,24 @@ void UpdateGame(void){
     Movimento();
     Atirar();
     TiroInimigo();
+    
+    if(jogador.invicible)
+    {
+        iFrame++;
+        if(iFrame >= 90)
+        {
+            iFrame = 0;
+            jogador.invicible = false;
+        }
+    }
+    
     for(int i=0;i<6;i++)
     {
-        if(foe[i].ativo && CheckCollisionCircles(jogador.posicao,jogador.raio,foe[i].posicao,foe[i].raio))
+        if(foe[i].ativo && CheckCollisionCircles(jogador.posicao,jogador.raio,foe[i].posicao,foe[i].raio) && !jogador.invicible)
             {
                 vida--;
                 foe[i].ativo=false;
+                jogador.invicible = true;
                 
             }
         }
@@ -339,7 +355,17 @@ void DrawGame(void){
     ClearBackground(BLACK);
     DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
-    DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    if(!jogador.invicible)
+    {
+        DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    }    
+    else 
+        {
+            if(iFrame%3 == 0 || iFrame%4 == 0)
+            {
+                DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y , RAYWHITE);
+            }
+        }
     
      for(int i = 0;i<6;i++)
     {
@@ -368,6 +394,7 @@ void DrawGame(void){
                 //{
                     vida--;
                     atiradorinimigo[j].ativa=false;
+                    jogador.invicible = true;
                 //}
             }
         }
@@ -760,7 +787,7 @@ GAMESTATE morte(void)
     float alpha = 1.0;
     GAMESTATE returnstate;
     Vector2 posicaoMouse = {0};
-    //PlaySound(triste);
+    PlaySound(triste);
     
     while(1)
     {
@@ -795,7 +822,7 @@ GAMESTATE morte(void)
             DrawText("sair",405, 610,40,LIGHTGRAY);
             if(IsMouseButtonDown(0))
             {
-                //StopSound(triste);
+                StopSound(triste);
                 //UnloadSound(triste);
                 fade = true;
                 returnstate = MENU;
