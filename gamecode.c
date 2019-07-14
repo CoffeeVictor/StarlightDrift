@@ -38,7 +38,7 @@ typedef struct Player
 //Variaveis Globais
 //-------------------------------------
 static const int Largura_Tela = 720;
-static const int Altura_Tela = 756;
+static const int Altura_Tela = 876;
 static bool gameOver = false;
 static bool pause = false;
 
