@@ -36,7 +36,7 @@ typedef struct Player
 //Variaveis Globais
 //-------------------------------------
 static const int Largura_Tela = 720;
-static const int Altura_Tela = 876;
+static const int Altura_Tela = 756;
 static bool gameOver = false;
 static bool pause = false;
 
@@ -53,6 +53,7 @@ static GAMESTATE gameState;
 static FILE* inimigo[20];
 static Sound menu;
 static Sound Laser;
+static Sound triste;
 static int a,b,c,d,e,f,g,h,i,j,k,l;
 static Rectangle foe[20] = {0};
 static bool foebool[20];
@@ -102,6 +103,7 @@ int main(void)
     InitWindow(Largura_Tela, Altura_Tela, "Starlight Drift Limpo");
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
+    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     SetTargetFPS(60);
     while(1)
     {
@@ -610,6 +612,7 @@ GAMESTATE morte(void)
     float alpha = 1.0;
     GAMESTATE returnstate;
     Vector2 posicaoMouse = {0};
+    PlaySound(triste);
     
     while(1)
     {
@@ -644,6 +647,7 @@ GAMESTATE morte(void)
             DrawText("sair",405, 610,40,LIGHTGRAY);
             if(IsMouseButtonDown(0))
             {
+                StopSound(triste);
                 fade = true;
                 returnstate = MENU;
             }
@@ -658,6 +662,7 @@ GAMESTATE morte(void)
             DrawText("retry",405, 560, 40, LIGHTGRAY);
             if(IsMouseButtonDown(0))
             {
+                StopSound(triste);
                 fade = true;
                 returnstate = JOGO;
             }
