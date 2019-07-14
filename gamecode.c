@@ -12,15 +12,15 @@
 //Structs
 //-------------------------------------
 
-typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, SAIR} GAMESTATE;
+typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, MORTE, SAIR} GAMESTATE;
 
 typedef struct Tiro
 {
     Vector2 posicao;
     Vector2 vel_bala;
     Color cor;
-    float raio;
     bool ativa;
+    float raio;
 }Tiro;
 
 typedef struct Player
@@ -33,11 +33,12 @@ typedef struct Player
     int tiro;
 }Player;
 
+
 //-------------------------------------
 //Variaveis Globais
 //-------------------------------------
 static const int Largura_Tela = 720;
-static const int Altura_Tela = 876;
+static const int Altura_Tela = 756;
 static bool gameOver = false;
 static bool pause = false;
 
@@ -54,9 +55,11 @@ static GAMESTATE gameState;
 static FILE* inimigo[20];
 static Sound menu;
 static Sound Laser;
+static Sound triste;
 static int a,b,c,d,e,f,g,h,i,j,k,l;
 static Rectangle foe[20] = {0};
 static bool foebool[20];
+static int vida;
 
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
@@ -87,6 +90,7 @@ static GAMESTATE Jogo(void);
 static GAMESTATE MenuScreen(void);   //Menu inicial
 static GAMESTATE Creditos(void);     //Creditos
 static GAMESTATE Ops(void);          //Opções
+static GAMESTATE morte(void);
 static void UpdateGame(void);   //Atualiza a matematica do frame
 static void DrawGame(void);     //Desenha o frame
 //static void LoadArq(void); //loada os arq
@@ -101,6 +105,7 @@ int main(void)
     InitWindow(Largura_Tela, Altura_Tela, "Starlight Drift Limpo");
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
+    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     SetTargetFPS(60);
     while(1)
     {
@@ -125,6 +130,10 @@ int main(void)
                 gameState = Ops();
             break;
             
+            case MORTE:
+                gameState = morte();
+                break;
+                
             case SAIR:
                 exit(0);
             break;
@@ -181,43 +190,51 @@ void Wave1()
     fscanf (inimigo[4], "%i %i\n",&i,&j);
     fscanf (inimigo[5], "%i %i\n",&k,&l);
     
+    
     for(int i=0;i<6;i++)
     {
-        foe[i].height = 40;
-        foe[i].width = 50;
-        if(i==0)
+        if(foebool)
         {
-            foe[i].x = a;
-            foe[i].y = b;
-        }
-        else if(i==1)
-        {
-            foe[i].x = c;
-            foe[i].y = d;
-        }
-        else if(i==2)
-        {
-            foe[i].x = e;
-            foe[i].y = f;
-        }
-        else if(i==3)
-        {
-            foe[i].x = g;
-            foe[i].y = h;
-        }
-        else if(i==4)
-        {
-            foe[i].x = i;
-            foe[i].y = j;
-        }
-        else if(i==5)
-        {
-            foe[i].x = k;
-            foe[i].y = l;
-        }
+            foe[i].height = 40;
+            foe[i].width = 50;
+            if(i==0)
+            {
+                foe[i].x = a;
+                foe[i].y = b;
+            }
+            else if(i==1)
+            {
+                foe[i].x = c;
+                foe[i].y = d;
+            }
+            else if(i==2)
+            {
+                foe[i].x = e;
+                foe[i].y = f;
+            }
+            else if(i==3)
+            {
+                foe[i].x = g;
+                foe[i].y = h;
+            }
+            else if(i==4)
+            {
+                foe[i].x = i;
+                foe[i].y = j;
+            }
+            else if(i==5)
+            {
+                foe[i].x = k;
+                foe[i].y = l;
+            }
+        }    
     }
-    
-    
+    for(int i=0;i<6;i++)
+    if(foebool[i])
+    {
+        DrawTexture(enemi,foe[i].x,foe[i].y,RAYWHITE);
+        
+    }
     
     
 }
@@ -232,6 +249,13 @@ void Inicializa_jogador(void)
     jogador.raio = 8;
     jogador.tiro = 1;
 }
+void Inicializa_inimigo(void)
+{
+    for(int i=0;i<20;i++)
+    {
+        foebool[i] = true;
+    }
+}
 void InitGame(void){
     StopSound(menu);
     
@@ -245,15 +269,12 @@ void InitGame(void){
     ImageResize(&enemy,40,50);
     enemi = LoadTextureFromImage(enemy);
     UnloadImage(enemy);
-   
+    vida = 3;
     InitMovBackground();
     Inicializa_jogador();
     Inicializa_tiro();
+    Inicializa_inimigo();
     
-    for(int i = 0;i<20;i++)
-    {
-        foebool[i] = true;
-    }
     
     UnloadImage(NaveImg);
 }
@@ -285,11 +306,6 @@ void Inicializa_tiro(void)
 void UnloadGame(void){
     UnloadTexture(Nave);
     UnloadTexture(fundo);
-    // UnloadArq();
-    for(int i=0;i<6;i++)
-    {
-        fclose(inimigo[i]);
-    }
 }
 void UpdateGame(void){
     movbackground += 3.0; //velocidade do background
@@ -299,13 +315,28 @@ void UpdateGame(void){
     
     Movimento();
     Atirar();
-    
+    for(int i=0;i<6;i++)
+    {
+    if(foebool[i] && CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
+        {
+            vida--;
+            jogador.posicao.x = 360;
+            jogador.posicao.y = 700;
+            foebool[i]=false;
+            
+          
+            
+            
+            
+        }
+    }
 }
 void DrawGame(void){
     ClearBackground(BLACK);
     DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
     DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    
     
     for(int i = 0;i<6;i++)
     {
@@ -323,19 +354,16 @@ void DrawGame(void){
         }
     }
     
-    for(int i = 0;i<6;i++)
+    /*for(int i = 0;i<6;i++)
     {
         if(foebool[i])
         {
             DrawTexture(enemi,foe[i].x,foe[i].y,RAYWHITE);
         }
-    }
+    }*/
     
-    /*DrawTexture(enemi,c,d,RAYWHITE);
-    DrawTexture(enemi,e,f,RAYWHITE);
-    DrawTexture(enemi,g,h,RAYWHITE);
-    DrawTexture(enemi,i,j,RAYWHITE);
-    DrawTexture(enemi,k,l,RAYWHITE);*/
+    
+    
     
     for(int i = 0;i<MAX_TIROS;i++)
     {
@@ -445,7 +473,7 @@ GAMESTATE Creditos(void)
     
     char texto[] = "Game Developers:\nJoão Victor Galdino\nJosé Rodrigues Neto\nLucas Fernandes Lins\nLuiz Fernando Barbosa\nMatheus Felipe Lima\n\nThis game was developed as a test for the introduction programming class by students of the Rural Federal University of Pernambuco (UFRPE) with the supervision of Professor Péricles Miranda\n\nThis game is not meant to be commercialized in any way whatsoever. We DO NOT own any of the images or sounds used in this game. Any similarities between the events portraited in this game and the real world are purely coincidental.\n\nSpecial Thanks to @raysan5, creator of Raylib\n\nSpecial Thanks to the coffee that was converted into this game's lines of code\n\n\nHomem Negro Fodase.";
     
-    while(1)
+    while(!WindowShouldClose())
     {
     PosicaoMouse = GetMousePosition();
     if(FadeIn)
@@ -491,6 +519,7 @@ GAMESTATE Jogo(void)
     float alpha = 1.0f;
     bool FadeIn = true;
     bool FadeOut = false;
+    
     //LoadArq();
     inimigo[0] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
     inimigo[1] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt2","r");
@@ -502,7 +531,9 @@ GAMESTATE Jogo(void)
     while(1)
     {
         if(IsKeyPressed('M'))
-            FadeOut = true;
+        {  FadeOut = true;
+           
+        }
         if(IsKeyPressed('P'))
             Pause();
         if(FadeIn)
@@ -533,8 +564,18 @@ GAMESTATE Jogo(void)
         Wave1();
         DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         EndDrawing();
+        
+        if(vida == 0)
+        {
+         
+          return MORTE;
+        }
     }   
-   
+   // UnloadArq();
+    for(int i=0;i<6;i++)
+    {
+        fclose(inimigo[i]);
+    }
    
 }
 
@@ -598,6 +639,84 @@ GAMESTATE Ops(void)
         EndDrawing();
     }
 }
+
+
+GAMESTATE morte(void)
+{
+    bool fade = false;
+    bool fadein = true;
+    Rectangle recsair = {415, 620, 85, 25};
+    Rectangle recretry = {415, 570, 135, 25};
+    float alpha = 1.0;
+    GAMESTATE returnstate;
+    Vector2 posicaoMouse = {0};
+    PlaySound(triste);
+    
+    while(1)
+    {
+    if(fade)
+        {
+            alpha+=0.01f;
+            if(alpha>=1)
+            {
+                alpha = 1.0f;
+                return returnstate;
+            }
+        
+        }
+    else if(fadein)
+        {
+            alpha -= 0.01f;
+            if(alpha<=0)
+            {
+                alpha = 0;
+                fadein = false;
+            }
+        }
+        posicaoMouse = GetMousePosition();
+        
+        BeginDrawing();
+        ClearBackground(BLACK);
+        
+        DrawText("homem negro fodase", 100, 300, 60, RED);
+        
+        if(CheckCollisionPointRec(posicaoMouse,recsair))
+        {
+            DrawText("sair",405, 610,40,LIGHTGRAY);
+            if(IsMouseButtonDown(0))
+            {
+                StopSound(triste);
+                fade = true;
+                returnstate = MENU;
+            }
+        }
+        else
+        {
+            DrawText("sair",405, 610,40,GRAY);
+        }
+        
+        if(CheckCollisionPointRec(posicaoMouse,recretry))
+        {
+            DrawText("retry",405, 560, 40, LIGHTGRAY);
+            if(IsMouseButtonDown(0))
+            {
+                StopSound(triste);
+                fade = true;
+                returnstate = JOGO;
+            }
+        }
+        else
+        {
+            DrawText("retry",405, 560, 40,GRAY);
+        }
+        
+        
+        DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
+        EndDrawing();
+        
+    }
+}
+
 
 GAMESTATE MenuScreen(void)
 {
