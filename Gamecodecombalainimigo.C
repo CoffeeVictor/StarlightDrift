@@ -5,7 +5,7 @@
 //-------------------------------------
 //defines
 //-------------------------------------
-
+#define VIDAS_INIMIGO 5
 #define MAX_TIROS 150
 
 //-------------------------------------
@@ -60,7 +60,7 @@ static const int Largura_Tela = 720;
 static const int Altura_Tela = 876;
 static bool gameOver = false;
 static bool pause = false;
-
+static int iFrame;
 static Rectangle background;
 static float movbackground;
 static Texture2D Nave;
@@ -80,8 +80,6 @@ static Sound triste;
 static Inimigo foe[6]={0};//struct inimigo declarada aqui
 static bool foebool[20];
 static int vida;
-static int iFrame;
-
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
 static Tiro atiradorinimigo[MAX_TIROS];
@@ -129,7 +127,6 @@ int main(void)
     InitWindow(Largura_Tela, Altura_Tela, "Starlight Drift Limpo");
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
-    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     
     SetTargetFPS(60);
     while(1)
@@ -160,6 +157,7 @@ int main(void)
                 break;
                 
             case SAIR:
+                UnloadSound(triste);
                 exit(0);
             break;
         }
@@ -169,6 +167,7 @@ int main(void)
 
 void InitMenu(void)
 {
+    triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     //Imagens
     
     Image luadecristal = LoadImage("/raylib/StarlightDrift/texture/luatransparente.png");
@@ -248,6 +247,10 @@ void Inicializa_inimigo(void)
     {
         foe[i].ativo = true;  
     }
+    for(int i=0;i<6;i++)
+    {
+        foe[i].vida = VIDAS_INIMIGO;  
+    }
 }
 void InitGame(void){
     StopSound(menu);
@@ -318,6 +321,15 @@ void UnloadGame(void){
 
 }
 void UpdateGame(void){
+    if(jogador.invicible)
+    {
+        iFrame++;
+        if(iFrame >= 90)
+        {
+            iFrame = 0;
+            jogador.invicible = false;
+        }
+    }
     if(!musica[numMusica].ativa){
         ChoiceMusic();
     }
@@ -329,17 +341,6 @@ void UpdateGame(void){
     Movimento();
     Atirar();
     TiroInimigo();
-    
-    if(jogador.invicible)
-    {
-        iFrame++;
-        if(iFrame >= 90)
-        {
-            iFrame = 0;
-            jogador.invicible = false;
-        }
-    }
-    
     for(int i=0;i<6;i++)
     {
         if(foe[i].ativo && CheckCollisionCircles(jogador.posicao,jogador.raio,foe[i].posicao,foe[i].raio) && !jogador.invicible)
@@ -347,7 +348,6 @@ void UpdateGame(void){
                 vida--;
                 foe[i].ativo=false;
                 jogador.invicible = true;
-                
             }
         }
 }
@@ -366,19 +366,20 @@ void DrawGame(void){
                 DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y , RAYWHITE);
             }
         }
-    
      for(int i = 0;i<6;i++)
     {
         for(int j = 0;j<MAX_TIROS;j++)
         {
-            if(tiro[j].ativa && CheckCollisionCircles(tiro[j].posicao,tiro[j].raio,foe[i].posicao,foe[i].raio))
+            //Para desenhar a hitbox do inimigo \/
+            //DrawCircle(foe[i].posicao.x+20,foe[i].posicao.y+25,foe[i].raio,RED);
+            if(tiro[j].ativa && CheckCollisionCircles(tiro[j].posicao,tiro[j].raio,(Vector2){foe[i].posicao.x+20,foe[i].posicao.y+25},foe[i].raio))
             {
-                //foehp[i]-=5
+                foe[i].vida--;
                 
-                //if(foehp[i] == 0)
-                //{
+                if(foe[i].vida == 0)
+                {
                     foe[i].ativo = false;
-                //}
+                }
             }
         }
     }
@@ -386,16 +387,13 @@ void DrawGame(void){
 
         for(int j = 0;j<MAX_TIROS;j++)
         {
-            if(atiradorinimigo[j].ativa && CheckCollisionCircles(atiradorinimigo[j].posicao,atiradorinimigo[j].raio,jogador.posicao,jogador.raio))
+            //Para desenhar a hitbox do player \/
+            //DrawCircle(jogador.posicao.x+20,jogador.posicao.y+25,jogador.raio,GREEN);
+            if(atiradorinimigo[j].ativa && CheckCollisionCircles(atiradorinimigo[j].posicao,atiradorinimigo[j].raio,(Vector2){jogador.posicao.x+20,jogador.posicao.y+25},jogador.raio))
             {
-                //foehp[i]-=5
-                
-                //if(foehp[i] == 0)
-                //{
                     vida--;
                     atiradorinimigo[j].ativa=false;
                     jogador.invicible = true;
-                //}
             }
         }
     
@@ -779,7 +777,7 @@ GAMESTATE Ops(void)
 
 GAMESTATE morte(void)
 {
-    //triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
+    
     bool fade = false;
     bool fadein = true;
     Rectangle recsair = {415, 620, 85, 25};
@@ -823,7 +821,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
-                //UnloadSound(triste);
+                
                 fade = true;
                 returnstate = MENU;
             }
