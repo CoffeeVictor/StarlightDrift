@@ -7,6 +7,7 @@
 //-------------------------------------
 
 #define MAX_TIROS 150
+#define VIDAS_INIMIGO 5
 
 //-------------------------------------
 //Structs
@@ -14,12 +15,19 @@
 
 typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, MORTE, SAIR} GAMESTATE;
 
+
+typedef struct Musica{
+    Sound mus;
+    bool ativa;
+}Musica;
+
 typedef struct Tiro
 {
     Vector2 posicao;
     Vector2 vel_bala;
     Color cor;
     bool ativa;
+    int raio;
 }Tiro;
 
 typedef struct Player
@@ -30,7 +38,22 @@ typedef struct Player
     float raio;
     float firerate;
     int tiro;
+    bool invicible;
 }Player;
+
+typedef struct Inimigo    //********************************************************************************************************************
+{                         //****************************************************************************************************************
+    Vector2 posicao;      //****************************************************************************************************************
+    Vector2 vel;          //****************************************************************************************************************
+    float raio;           //****************************************************************************************************************
+    float chancedetiro;   //****************************************************************************************************************
+    int tiro;             //****************************************************************************************************************
+    int vida;             //****************************************************************************************************************
+    int contador;         //****************************************************************************************************************
+    bool ativo;
+   
+}Inimigo;
+
 
 //-------------------------------------
 //Variaveis Globais
@@ -51,16 +74,20 @@ static Texture2D Fundolua;
 static Texture2D enemi;
 static GAMESTATE gameState;
 static FILE* inimigo[20];
+static int numMusica=0;
+static Musica musica[10];
 static Sound menu;
 static Sound Laser;
 static Sound triste;
-static int a,b,c,d,e,f,g,h,i,j,k,l;
-static Rectangle foe[20] = {0};
+static Inimigo foe[20]={0};//struct inimigo declarada aqui
 static bool foebool[20];
 static int vida;
+static int iFrame;
+static int counter;
 
 static Tiro tiro[MAX_TIROS];
 static Player jogador;
+static Tiro atiradorinimigo[MAX_TIROS];
 //static Music musicas;
 static float vol = 1;
 
@@ -73,8 +100,8 @@ static void InitMovBackground(void);
 static int Level1(int Vidas);       //Level1 
 static int Level2(int Vidas);       //Level2 
 static int Level3(int Vidas);       //Level3
-
-
+static void ChoiceMusic(void);
+static void InitMusic(void);
 static void InitGame(void);     //Iniciar o jogo
 static void UnloadGame(void);   //Descarregar arquivos do jogo
 static void Movimento(void);
@@ -91,6 +118,8 @@ static GAMESTATE Ops(void);          //Opções
 static GAMESTATE morte(void);
 static void UpdateGame(void);   //Atualiza a matematica do frame
 static void DrawGame(void);     //Desenha o frame
+static void Atirar(void); //
+static void TiroInimigo(void);//tentativa de fzr o tiro do inimigo
 //static void LoadArq(void); //loada os arq
 //static void Wave1(FILE* lado1,FILE* lado2); //wave de teste
 //static void UnloadArq(void);//unloada arq
@@ -104,6 +133,7 @@ int main(void)
     InitAudioDevice();
     menu = LoadSound("/raylib/StarlightDrift/sounds/Main_Menu.mp3");
     triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
+    
     SetTargetFPS(60);
     while(1)
     {
@@ -179,59 +209,139 @@ void UnloadArq(void)
     fclose(lado1);
     fclose(lado2);
 }*/
-void Wave1()
+int Wave1()
 {
-    fscanf (inimigo[0], "%i %i\n",&a,&b);
-    fscanf (inimigo[1], "%i %i\n",&c,&d);
-    fscanf (inimigo[2], "%i %i\n",&e,&f);
-    fscanf (inimigo[3], "%i %i\n",&g,&h);
-    fscanf (inimigo[4], "%i %i\n",&i,&j);
-    fscanf (inimigo[5], "%i %i\n",&k,&l);
     
-    
-    for(int i=0;i<6;i++)
+    for(int i = 0;i<6;i++)
     {
-        foe[i].height = 40;
-        foe[i].width = 50;
-        if(i==0)
+        if(foe[i].ativo)
         {
-            foe[i].x = a;
-            foe[i].y = b;
-        }
-        else if(i==1)
-        {
-            foe[i].x = c;
-            foe[i].y = d;
-        }
-        else if(i==2)
-        {
-            foe[i].x = e;
-            foe[i].y = f;
-        }
-        else if(i==3)
-        {
-            foe[i].x = g;
-            foe[i].y = h;
-        }
-        else if(i==4)
-        {
-            foe[i].x = i;
-            foe[i].y = j;
-        }
-        else if(i==5)
-        {
-            foe[i].x = k;
-            foe[i].y = l;
+            fscanf (inimigo[i], "%f %f\n",&foe[i].posicao.x,&foe[i].posicao.y);
         }
     }
+    
+    
     for(int i=0;i<6;i++)
-    if(foebool[i])
+        if(foe[i].ativo)
+        {
+            DrawTexture(enemi,foe[i].posicao.x,foe[i].posicao.y,RAYWHITE);
+        
+        }
+        return counter;
+    
+    
+}
+
+int wave2()
+{
+    for(int i=6;i<11;i++)
     {
-        DrawTexture(enemi,foe[i].x,foe[i].y,RAYWHITE);
+        if(foe[i].ativo)
+        {
+            fscanf (inimigo[i], "%f %f\n",&foe[i].posicao.x,&foe[i].posicao.y);
+        }    
+    }
+    for(int i=6;i<11;i++)
+    {   
+        if(foe[i].ativo)
+        {
+            DrawTexture(enemi,foe[i].posicao.x,foe[i].posicao.y,RAYWHITE);
+            if(foe[i].posicao.y>=Altura_Tela)
+            {
+                counter++;
+                foe[i].ativo = false;
+            }
+        }
+    }
+    
+    for(int j=6;j<11;j++)
+    {
+        if(foe[j].ativo)
+        {
+                foe[j].chancedetiro=GetRandomValue(0,100);
+            if(foe[j].chancedetiro<=20)
+            {
+                foe[j].contador += 5;
+                
+                if(foe[j].contador == 20)
+                {
+                    
+                        
+                            for(int i = 0;i<MAX_TIROS;i++)
+                            {
+                                if(!atiradorinimigo[i].ativa)
+                                {
+                                    atiradorinimigo[i].posicao.x = foe[j].posicao.x + 20;
+                                    atiradorinimigo[i].posicao.y = foe[j].posicao.y + 16;
+                                    atiradorinimigo[i].ativa = true;
+                                    break;
+                                }
+                            }
+                        
+                        
+                    foe[j].contador = 0;
+                }
+            }
+        }
         
     }
     
+    return counter;
     
+}
+
+int wave3()
+{
+    
+ for(int i=11;i<18;i++)
+    {
+        if(foe[i].ativo)
+        {
+            fscanf (inimigo[i], "%f %f\n",&foe[i].posicao.x,&foe[i].posicao.y);
+        }
+    }
+    for(int i=11;i<18;i++)
+    {   
+        if(foe[i].ativo)
+        {
+            DrawTexture(enemi,foe[i].posicao.x,foe[i].posicao.y,RAYWHITE);
+        
+        }
+    }
+    
+    for(int j=11;j<18;j++)
+    {
+        if(foe[j].ativo)
+        {
+                foe[j].chancedetiro=GetRandomValue(0,100);
+            if(foe[j].chancedetiro<=20)
+            {
+                foe[j].contador += 5;
+                
+                if(foe[j].contador == 20)
+                {
+                    
+                        
+                            for(int i = 0;i<MAX_TIROS;i++)
+                            {
+                                if(!atiradorinimigo[i].ativa)
+                                {
+                                    atiradorinimigo[i].posicao.x = foe[j].posicao.x + 20;
+                                    atiradorinimigo[i].posicao.y = foe[j].posicao.y + 16;
+                                    atiradorinimigo[i].ativa = true;
+                                    break;
+                                }
+                            }
+                        
+                        
+                    foe[j].contador = 0;
+                }
+            }
+        }
+        
+    }
+       
+    return counter;
 }
 void Inicializa_jogador(void)
 {
@@ -243,16 +353,32 @@ void Inicializa_jogador(void)
     jogador.firerate = 0;
     jogador.raio = 8;
     jogador.tiro = 1;
+    jogador.invicible = false;
 }
 void Inicializa_inimigo(void)
 {
-    for(int i=0;i<20;i++)
+    for(int i=0;i<6;i++)
     {
-        foebool[i] = true;
+        foe[i].ativo = true;
+                
     }
+    
+    for(int i=0;i<18;i++)
+    {
+        if(foe[i].ativo)
+        {
+            foe[i].raio=20;
+        }
+    }
+     for(int i=0;i<18;i++)
+    {
+        foe[i].vida = VIDAS_INIMIGO;  
+    }
+    
 }
 void InitGame(void){
     StopSound(menu);
+    InitMusic();
     
     Image NaveImg = LoadImage("/raylib/StarlightDrift/texture/nave.png");
     
@@ -291,8 +417,20 @@ void Inicializa_tiro(void)
         tiro[i].posicao.y = jogador.posicao.y + 8;
         tiro[i].vel_bala.y = 15;
         tiro[i].vel_bala.x = 2;
+        tiro[i].raio = 3;
         tiro[i].ativa = false;
         tiro[i].cor = ORANGE;
+    }
+    
+    for(int i = 0;i<MAX_TIROS;i++)
+    {
+        atiradorinimigo[i].posicao.x = foe[0].posicao.x;
+        atiradorinimigo[i].posicao.y = foe[0].posicao.y + 8;
+        atiradorinimigo[i].vel_bala.y = 15;
+        atiradorinimigo[i].vel_bala.x = 2;
+        atiradorinimigo[i].raio = 3;
+        atiradorinimigo[i].ativa = false;
+        atiradorinimigo[i].cor = BLUE;
     }
 }
 
@@ -300,8 +438,16 @@ void Inicializa_tiro(void)
 void UnloadGame(void){
     UnloadTexture(Nave);
     UnloadTexture(fundo);
+    if (musica[numMusica].ativa){
+        StopSound(musica[numMusica].mus);
+        UnloadSound(musica[numMusica].mus);
+    }
+
 }
 void UpdateGame(void){
+    if(!musica[numMusica].ativa){
+        ChoiceMusic();
+    }
     movbackground += 3.0; //velocidade do background
     if(movbackground >= fundo.height) {
         movbackground = 0; //looping do background
@@ -309,23 +455,101 @@ void UpdateGame(void){
     
     Movimento();
     Atirar();
-    for(int i=0;i<6;i++)
+    TiroInimigo();
+    if(counter == 6)
     {
-    if(CheckCollisionCircleRec((Vector2){jogador.posicao.x + 30, jogador.posicao.y + 20},jogador.raio,foe[i]))
+        for(int i=6;i<11;i++)
         {
-            vida--;
-            jogador.posicao.x = 360;
-            jogador.posicao.y = 700;
-            foebool[i]=false;
-            
+            foe[i].ativo = true;
         }
     }
+    if(counter == 11)
+    {
+        for(int i=11;i<18;i++)
+        {
+            foe[i].ativo = true;
+        }
+    }
+    
+    if(jogador.invicible)
+    {
+        iFrame++;
+        if(iFrame >= 90)
+        {
+            iFrame = 0;
+            jogador.invicible = false;
+        }
+    }
+    
+     for(int i = 0;i<18;i++)
+    {
+        for(int j = 0;j<MAX_TIROS;j++)
+        {
+            if(tiro[j].ativa && CheckCollisionCircles(tiro[j].posicao,tiro[j].raio,(Vector2){foe[i].posicao.x+20,foe[i].posicao.y+25},foe[i].raio) && foe[i].ativo)
+            {
+                
+                    foe[i].vida--;
+                    tiro[j].ativa = false;
+                    
+                    if(foe[i].vida == 0)
+                    {
+                        foe[i].ativo = false;
+                        counter++;
+                    }
+                
+                
+            }
+        }
+    }
+    
+    for(int i =0;i<18;i++)
+    {
+        for(int j = 0;j<MAX_TIROS;j++)
+        {
+                if(atiradorinimigo[j].ativa && CheckCollisionCircles(atiradorinimigo[j].posicao,atiradorinimigo[j].raio,(Vector2){jogador.posicao.x+20,jogador.posicao.y+25},jogador.raio) && !jogador.invicible)
+            {
+            
+                //vida--;
+                atiradorinimigo[j].ativa=false;
+                jogador.invicible = true;
+                    
+                
+            }
+        }
+    }   
+        
+    for(int i=0;i<18;i++)
+    {
+            if(foe[i].ativo && CheckCollisionCircles(jogador.posicao,jogador.raio,foe[i].posicao,foe[i].raio) && !jogador.invicible)
+         {
+                //vida--;
+                foe[i].ativo = false;
+                jogador.invicible = true;
+                
+                
+        }
+    }
+        
+
 }
 void DrawGame(void){
     ClearBackground(BLACK);
     DrawTextureEx(fundo,(Vector2){0,movbackground},0.0f,1.0f,WHITE);
     DrawTextureEx(fundo,(Vector2){0,-fundo.height + movbackground},0.0f,1.0f,WHITE);
-    DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    DrawText(FormatText("contador: %i", counter), 100, 100, 30, WHITE);
+    if(!jogador.invicible)
+    {
+        DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y,RAYWHITE);
+    }    
+    else 
+        {
+            if(iFrame%3 == 0 || iFrame%4 == 0)
+            {
+                DrawTexture(Nave,jogador.posicao.x,jogador.posicao.y , RAYWHITE);
+            }
+        }
+    
+    
     
     for(int i = 0;i<MAX_TIROS;i++)
     {
@@ -339,6 +563,20 @@ void DrawGame(void){
             tiro[i].ativa = false;
         }
     }
+    
+    for(int i = 0;i<MAX_TIROS;i++)
+    {
+        if(atiradorinimigo[i].ativa)
+        {
+            atiradorinimigo[i].posicao.y += atiradorinimigo[i].vel_bala.y;
+            DrawCircle(atiradorinimigo[i].posicao.x,atiradorinimigo[i].posicao.y,3,atiradorinimigo[i].cor);
+        }
+        if(atiradorinimigo[i].posicao.y >=Altura_Tela)
+        {
+            atiradorinimigo[i].ativa = false;
+        }
+    }
+    DrawText(TextFormat("VIDAS:%i",vida),0,0,50,BLUE);
 }
 
 void Atirar(void)
@@ -374,6 +612,45 @@ void Movimento(void)
         jogador.posicao.y += jogador.vel.y;
     if(IsKeyDown('D') && jogador.posicao.x <= Largura_Tela - 45)
         jogador.posicao.x += jogador.vel.x;
+}
+
+void TiroInimigo(void)
+{
+    for(int j=0;j<6;j++)
+    {
+        if(foe[j].ativo)
+        {
+                foe[j].chancedetiro=GetRandomValue(0,100);
+            if(foe[j].chancedetiro<=20)
+            {
+                foe[j].contador += 5;
+                
+                if(foe[j].contador == 20)
+                {
+                    
+                        
+                            for(int i = 0;i<MAX_TIROS;i++)
+                            {
+                                if(!atiradorinimigo[i].ativa)
+                                {
+                                    atiradorinimigo[i].posicao.x = foe[j].posicao.x + 20;
+                                    atiradorinimigo[i].posicao.y = foe[j].posicao.y + 16;
+                                    atiradorinimigo[i].ativa = true;
+                                    break;
+                                }
+                            }
+                        
+                            
+                    
+                        
+                        
+                    foe[j].contador = 0;
+                }
+            }
+        }
+        
+    }
+            
 }
 
 int Level1(int Vidas){
@@ -419,6 +696,53 @@ void Pause(void)
                 break;
         }
     
+}
+void InitMusic(void){
+    for (int i=0;i<10;i++){
+        musica[i].ativa=false;
+    }
+    numMusica=2;
+}
+void ChoiceMusic(void){
+    if (musica[numMusica].ativa){
+        UnloadSound(musica[numMusica].mus);
+    }
+    numMusica=GetRandomValue(2,9);
+    switch (numMusica){
+        case 2:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Hatsune Miku - Melt PV.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 3:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/One Punch Man - Official Opening - The Hero!! Set Fire to the Furious Fist.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 4:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Dragon Ball Super OST - Ka Ka Kachi Daze  LYRICS  ULTRA INSTINCT THEME.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 5:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Death Note Opening 1 completo full HD.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 6:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/Chopin  Etude No.2 in A minor Op10-2 on guitar.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 7:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/10 - Faraway 380,000-Kilometer Voyage.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 8:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/01 - The Space Shrine Maiden Appears.mp3");
+        musica[numMusica].ativa=true;
+        break;
+        case 9:
+        musica[numMusica].mus=LoadSound("/raylib/StarlightDrift/sounds/07 - Eternal Spring Dream.mp3");
+        musica[numMusica].ativa=true;
+        break;
+    }
+    PlaySound(musica[numMusica].mus);
 }
 
 GAMESTATE Creditos(void)
@@ -486,9 +810,22 @@ GAMESTATE Jogo(void)
     inimigo[0] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt","r");
     inimigo[1] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt2","r");
     inimigo[2] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt3","r");
-    inimigo[3]= fopen ("/raylib/StarlightDrift/enemy/enemies.txt4","r");
+    inimigo[3] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt4","r");
     inimigo[4] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt5","r");
     inimigo[5] = fopen ("/raylib/StarlightDrift/enemy/enemies.txt6","r");
+    inimigo[6] = fopen ("/raylib/StarlightDrift/enemy/padraoduplo1.txt","r");
+    inimigo[7] = fopen ("/raylib/StarlightDrift/enemy/padraoduplo2.txt","r");
+    inimigo[8] = fopen ("/raylib/StarlightDrift/enemy/padraolongo.txt","r");
+    inimigo[9] = fopen ("/raylib/StarlightDrift/enemy/padraozig1.txt","r");
+    inimigo[10] = fopen ("/raylib/StarlightDrift/enemy/padraozig2.txt","r");
+    inimigo[11] = fopen ("/raylib/StarlightDrift/enemy/wave3-1.txt","r");
+    inimigo[12] = fopen ("/raylib/StarlightDrift/enemy/wave3-2.txt","r");
+    inimigo[13] = fopen ("/raylib/StarlightDrift/enemy/wave3-3.txt","r");
+    inimigo[14] = fopen ("/raylib/StarlightDrift/enemy/wave3-4.txt","r");
+    inimigo[15] = fopen ("/raylib/StarlightDrift/enemy/wave3-5.txt","r");
+    inimigo[16] = fopen ("/raylib/StarlightDrift/enemy/wave3-6.txt","r");
+    inimigo[17] = fopen ("/raylib/StarlightDrift/enemy/wave3-7.txt","r");
+    
     
     while(1)
     {
@@ -512,7 +849,7 @@ GAMESTATE Jogo(void)
             alpha += 0.01f;
             if (alpha >= 1)
             {
-                
+                counter = 0;
                 alpha = 1.0f;
                 return MENU;
             }
@@ -522,19 +859,30 @@ GAMESTATE Jogo(void)
         UpdateGame();
         BeginDrawing();
         DrawGame();
-        
-        Wave1();
+        //Wave1();
+        if(Wave1() >= 6)
+        {
+            
+            if(wave2() >= 10)
+            {
+                if(wave3() >= 17)
+                {   
+                    
+                    
+                }
+            }
+        }
         DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
         EndDrawing();
         
-        if(vida == 0)
+        if(vida <= 0)
         {
-         
+         counter = 0;
           return MORTE;
         }
     }   
    // UnloadArq();
-    for(int i=0;i<6;i++)
+    for(int i=0;i<11;i++)
     {
         fclose(inimigo[i]);
     }
@@ -605,6 +953,7 @@ GAMESTATE Ops(void)
 
 GAMESTATE morte(void)
 {
+    //triste = LoadSound("/raylib/StarlightDrift/sounds/naruto.mp3");
     bool fade = false;
     bool fadein = true;
     Rectangle recsair = {415, 620, 85, 25};
@@ -648,6 +997,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
+                //UnloadSound(triste);
                 fade = true;
                 returnstate = MENU;
             }
@@ -663,6 +1013,7 @@ GAMESTATE morte(void)
             if(IsMouseButtonDown(0))
             {
                 StopSound(triste);
+                //UnloadSound(triste);
                 fade = true;
                 returnstate = JOGO;
             }
