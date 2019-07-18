@@ -21,7 +21,7 @@
 //Structs
 //-------------------------------------
 
-typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, MORTE, SAIR} GAMESTATE;
+typedef enum {MENU=0, JOGO, CREDITOS, OPCOES, MORTE, SAIR,WIN} GAMESTATE;
 
 
 typedef struct Musica{
@@ -204,6 +204,7 @@ static GAMESTATE morte(void);
 static GAMESTATE Fase1(void);
 static GAMESTATE Fase2(void);
 static GAMESTATE Fase3(void);
+static GAMESTATE Victory(void);
 static void InitFase1(void);
 static void UpdateFase1(void);
 static void DrawFase1(void);
@@ -269,6 +270,10 @@ int main(void)
             
             case MORTE:
                 gameState = morte();
+                break;
+                
+            case WIN:
+                gameState = Victory();
                 break;
                 
             case SAIR:
@@ -1614,7 +1619,14 @@ GAMESTATE Fase3(void) //fase3
             {
                 counter = 0;
                 alpha = 1.0f;
-                return MENU;
+                if(Pericles.hp <= 0)
+                {
+                    return WIN;
+                }
+                else
+                {
+                    return MENU;
+                }
             }
         }
             
@@ -1631,12 +1643,62 @@ GAMESTATE Fase3(void) //fase3
             {
                 UpdateFase3();
             }
+            
+            if(Pericles.hp <= 0)
+            {
+                FadeOut = true;
+            }
 
             DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
 
 
             EndDrawing();
         }
+}
+
+GAMESTATE Victory(void)
+{
+    float alpha = 1.0f;
+    bool FadeIn = true;
+    bool FadeOut = false;
+    SetMasterVolume(0.25);
+    
+    while(1)
+    {
+        
+        if(IsKeyPressed(KEY_F1)){
+            Cheats();
+        }
+        if(IsKeyPressed('M'))
+        {
+            FadeOut = true;
+        }
+        if(IsKeyPressed('P'))
+            Pause();
+        if(FadeIn)
+        {
+            alpha -= 0.01f;
+            if(alpha<=0)
+            {
+                alpha = 0;
+                FadeIn = false;
+            }
+        } else
+        if(FadeOut)
+        {
+            alpha += 0.01f;
+            if (alpha >= 1)
+            {
+                counter = 0;
+                alpha = 1.0f;
+                return CREDITOS;
+            }
+        }
+        
+        BeginDrawing();
+        DrawRectangle(0, 0, Largura_Tela, Altura_Tela, Fade(BLACK, alpha));
+        EndDrawing();
+    }
 }
 
 GAMESTATE Ops(void)
