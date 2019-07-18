@@ -1581,6 +1581,7 @@ GAMESTATE Fase2(void) //fase2
          counter = 0;
          parte_dial--;
          UnloadTexture(enemi);
+         UnloadSound(Laser);
          
          for(int i=0;i<32;i++)
          {
@@ -1662,6 +1663,7 @@ GAMESTATE Fase3(void) //fase3
             {
                 gameOver = false;
                 parte_dial--;
+                UnloadSound(Laser);
                 UnloadTexture(pericles);
                 return MORTE;
             }
